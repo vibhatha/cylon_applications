@@ -366,3 +366,4 @@ Epoch 1/10
 3. https://towardsdatascience.com/deep-learning-using-pytorch-for-tabular-data-c68017d8b480
 4. https://towardsdatascience.com/data-handling-using-pandas-machine-learning-in-real-life-be76a697418c
 5. https://towardsdatascience.com/data-manipulation-for-machine-learning-with-pandas-ab23e79ba5de
+6. https://www.kaggle.com/vibhatha/data-analysis-and-feature-extraction-with-python/edit
