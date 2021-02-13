@@ -363,3 +363,4 @@ Epoch 1/10
 
 1. https://github.com/vibhatha/Benchmarks/tree/master/examples/M16
 2. https://github.com/tirthajyoti/Machine-Learning-with-Python/blob/master/Clustering-Dimensionality-Reduction/K_Means_Clustering_Practice.ipynb
+3. https://towardsdatascience.com/deep-learning-using-pytorch-for-tabular-data-c68017d8b480
