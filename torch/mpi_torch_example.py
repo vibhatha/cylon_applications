@@ -11,8 +11,6 @@ import mpi4py.rc
 mpi4py.rc.initialize = False
 from mpi4py import MPI
 from torch.nn.parallel import DistributedDataParallel as DDP
-from pycylon import CylonContext
-from pycylon.net import MPIConfig
 
 
 class ToyModel(nn.Module):
@@ -27,7 +25,7 @@ class ToyModel(nn.Module):
 
 
 def demo_basic(rank, world_size):
-    print(f"Running basic DDP example on rank {rank}.")    
+    print("Running basic DDP example on rank ", rank)    
 
     # create model and move it to GPU with id rank
     model = ToyModel()
@@ -45,7 +43,7 @@ def demo_basic(rank, world_size):
 
 
 def run(rank, size, hostname):
-    print(f"I am {rank} of {size} in {hostname}")
+    print("I am ", rank, "of ",size, "in", hostname)
     tensor = torch.zeros(1)
     if rank == 0:
         tensor += 1
@@ -60,9 +58,14 @@ def run(rank, size, hostname):
 def init_processes(rank, size, hostname, fn, backend='tcp'):
     """ Initialize the distributed environment. """
     dist.init_process_group(backend, rank=rank, world_size=size)
-    mpi_config = MPIConfig()
-    ctx = CylonContext(config=mpi_config, distributed=True)
+    if not MPI.Is_initialized():
+        MPI.Init()
     fn(rank, size)
+
+def cleanup():
+    dist.destroy_process_group()
+    if MPI.Is_finalized():
+        MPI.Finalize()
 
 
 if __name__ == "__main__":
@@ -70,3 +73,4 @@ if __name__ == "__main__":
     world_rank = int(os.environ['OMPI_COMM_WORLD_RANK'])
     hostname = socket.gethostname()
     init_processes(world_rank, world_size, hostname, demo_basic, backend='mpi')
+    cleanup()
