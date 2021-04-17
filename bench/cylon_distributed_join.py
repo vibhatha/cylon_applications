@@ -95,7 +95,7 @@ def bench_join_op(ctx, start, end, step, num_cols, algorithm, repetitions, stats
             times.append([cylon_time])
         times = np.array(times).sum(axis=0) / repetitions
         if ctx.get_rank() == 0:
-            print(f"Join Op : Records={records}, Columns={num_cols}, Cylon Time : {times[0]}")
+            print("Join Op : Records={}, Columns={}, Cylon Time : {}".format(records, num_cols, times[0]))
             all_data.append(
                 [records, num_cols, algorithm, times[0]])
             pdf = pd.DataFrame(all_data, columns=schema)
