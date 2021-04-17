@@ -40,7 +40,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
     #     ["ssh", "v-001", "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-scheduler", "--interface", "enp175s0f0",
     #      "--scheduler-file", "/N/u2/d/dnperera/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     subprocess.Popen(
-        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--interface", "enp175s0f1"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     time.sleep(5)
 
@@ -72,10 +72,8 @@ def stop_cluster(ips):
     time.sleep(5)
 
 
-def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
+def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism, client):
     print("Join Function")
-    client = Client(scheduler_host + ':8786')
-    print(client)
     sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
     distributed_file_prefix = "single_data_file.csv"
     left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
@@ -104,7 +102,7 @@ def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
     return join_time
 
 
-def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, num_nodes, parallelism):
+def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, num_nodes, parallelism, ips):
     all_data = []
     schema = ["num_records", "num_cols", "time(s)"]
     assert repetitions >= 1
@@ -113,6 +111,10 @@ def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file
     assert num_cols > 0
     for records in range(start, end + step, step):
         times = []
+        stop_cluster(ips)
+        start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
+        client = Client(scheduler_host + ':8786')
+        print(client)
         for idx in range(repetitions):
             dask_time = dask_join(scheduler_host=scheduler_host, num_rows=records, base_file_path=base_file_path,
                                   num_nodes=num_nodes, parallelism=parallelism)
@@ -120,6 +122,9 @@ def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file
         times = np.array(times).sum(axis=0) / repetitions
         print("Join Op : Records={}, Columns={}, Dask Time : {}".format(records, num_cols, times[0]))
         all_data.append([records, num_cols, times[0]])
+        # client.restart()
+        client.close()
+        stop_cluster(ips)
     pdf = pd.DataFrame(all_data, columns=schema)
     print(pdf)
     pdf.to_csv(stats_file)
@@ -188,8 +193,6 @@ if __name__ == '__main__':
     print("NODES : ", ips)
     print("Processes Per Node: ", procs)
 
-    stop_cluster(ips)
-    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
     bench_join_op(start=args.start_size,
                   end=args.end_size,
                   step=args.step_size,
@@ -198,5 +201,6 @@ if __name__ == '__main__':
                   stats_file=args.stats_file,
                   base_file_path=args.base_file_path,
                   num_nodes=args.total_nodes,
-                  parallelism=parallelism)
-    stop_cluster(ips)
+                  parallelism=parallelism,
+                  ips=ips)
+
