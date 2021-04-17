@@ -1,18 +1,3 @@
-import time
-import pandas as pd
-import pycylon as cn
-import numpy as np
-from pycylon import CylonContext
-from pycylon import Table
-from pycylon.index import RangeIndex
-from bench_util import get_dataframe
-from bench_util import line_separator
-import pyarrow as pa
-import argparse
-from pycylon.io import CSVReadOptions
-from pycylon.io import read_csv
-import os
-
 ##
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,17 +12,13 @@ import os
 # limitations under the License.
 ##
 
-
-import time
-import pandas as pd
-import pycylon as cn
-import numpy as np
-from pycylon import CylonContext
-from pycylon import Table
-from pycylon.index import RangeIndex
-from bench_util import get_dataframe
-import pyarrow as pa
 import argparse
+import os
+import time
+
+import numpy as np
+import pandas as pd
+from pycylon import CylonContext
 from pycylon.io import CSVReadOptions
 from pycylon.io import read_csv
 from pycylon.net import MPIConfig
@@ -98,9 +79,10 @@ def bench_join_op(ctx, start, end, step, num_cols, algorithm, repetitions, stats
             print("Join Op : Records={}, Columns={}, Cylon Time : {}".format(records, num_cols, times[0]))
             all_data.append(
                 [records, num_cols, algorithm, times[0]])
-            pdf = pd.DataFrame(all_data, columns=schema)
-            print(pdf)
-            pdf.to_csv(stats_file)
+    if ctx.get_rank() == 0:
+        pdf = pd.DataFrame(all_data, columns=schema)
+        print(pdf)
+        pdf.to_csv(stats_file)
 
 
 if __name__ == '__main__':
