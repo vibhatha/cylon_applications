@@ -18,9 +18,9 @@ import numpy as np
                                         --stats_file /tmp/dask_dist_join_bench.csv \
                                         --repetitions 3 \
                                         --base_file_path ~/data/cylon_bench \
-                                        --parallelism 4 \
+                                        --parallelism 64 \
                                         --nodes_file /tmp/hostfile \
-                                        --total_nodes 1 \
+                                        --total_nodes 8 \
                                         --scheduler_host v-001 \
                                         --python_env /home/vibhatha/venv/ENVCYLON
 """
@@ -72,26 +72,34 @@ def stop_cluster(ips):
     time.sleep(5)
 
 
-def dask_join(scheduler_host, num_rows, base_file_path):
-    def func():
-        df = dask.datasets.timeseries()
-        df2 = df[df.y > 0]
-        df3 = df2.groupby('name').x.std()
-        computed_df = df3.compute()
-        return computed_df
+def dask_join(scheduler_host, num_rows, base_file_path, num_nodes):
+
+    def join_func():
+        sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
+        distributed_file_prefix = "single_data_file.csv"
+        left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
+        right_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
+        df_l = dd.read_csv(left_file_path).repartition(npartitions=num_nodes)
+        df_r = dd.read_csv(right_file_path).repartition(npartitions=num_nodes)
+
+        client.persist([df_l, df_r])
+
+        print("left rows", len(df_l), flush=True)
+        print("right rows", len(df_r), flush=True)
+        join_time = time.time()
+        out = df_l.merge(df_r, on='0', how='inner', suffixes=('_left', '_right')).compute()
+        join_time = time.time() - join_time
+        return join_time
 
     client = Client(scheduler_host + ':8786')
     print(client)
-    dask_time = time.time()
-    future = client.submit(func)
-    result = future.result()
-    dask_time = time.time() - dask_time
-    print(result)
+    dask_time_future = client.submit(join_func)
+    dask_time = dask_time_future.result()
     client.close()
     return dask_time
 
 
-def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path):
+def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, num_nodes):
     all_data = []
     schema = ["num_records", "num_cols", "time(s)"]
     assert repetitions >= 1
@@ -101,8 +109,9 @@ def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file
     for records in range(start, end + step, step):
         times = []
         for idx in range(repetitions):
-            dask_time = dask_join(scheduler_host=scheduler_host, num_rows=records, base_file_path=base_file_path)
-            times.append(dask_time)
+            dask_time = dask_join(scheduler_host=scheduler_host, num_rows=records, base_file_path=base_file_path,
+                                  num_nodes=num_nodes)
+            times.append([dask_time])
         times = np.array(times).sum(axis=0) / repetitions
         print("Join Op : Records={}, Columns={}, Dask Time : {}".format(records, num_cols, times[0]))
         all_data.append([records, num_cols, times[0]])
@@ -182,5 +191,6 @@ if __name__ == '__main__':
                   num_cols=args.num_cols,
                   repetitions=args.repetitions,
                   stats_file=args.stats_file,
-                  base_file_path=args.base_file_path)
+                  base_file_path=args.base_file_path,
+                  num_nodes=args.total_nodes)
     stop_cluster(ips)
