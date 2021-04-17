@@ -143,7 +143,7 @@ if __name__ == '__main__':
     print("Stats File : {}".format(args.stats_file))
     print("Base File Path : {}".format(args.base_file_path))
     mpi_config = MPIConfig()
-    ctx: CylonContext = CylonContext(config=mpi_config, distributed=True)
+    ctx = CylonContext(config=mpi_config, distributed=True)
     bench_join_op(ctx=ctx,
                   start=args.start_size,
                   end=args.end_size,
