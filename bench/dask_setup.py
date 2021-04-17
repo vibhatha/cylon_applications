@@ -1,5 +1,6 @@
 import os
 
+import dask
 import dask.dataframe as dd
 from dask.distributed import Client, SSHCluster
 
@@ -70,8 +71,23 @@ def stop_cluster(ips):
     time.sleep(5)
 
 
-def join_bench_op():
-    pass
+def dask_test_app(scheduler_host):
+    def func():
+        df = dask.datasets.timeseries()
+        df2 = df[df.y > 0]
+        df3 = df2.groupby('name').x.std()
+        computed_df = df3.compute()
+        return computed_df
+
+    client = Client(scheduler_host+':8786')
+    print(client)
+
+    future = client.submit(func)
+
+    result = future.result()
+
+    print(result)
+    client.close()
 
 
 if __name__ == '__main__':
@@ -136,6 +152,7 @@ if __name__ == '__main__':
     scheduler_host = args.scheduler_host
     print(ips)
 
-    # stop_cluster(ips)
-    # start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
-    # stop_cluster(ips)
+    stop_cluster(ips)
+    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
+    dask_test_app(scheduler_host=scheduler_host)
+    stop_cluster(ips)
