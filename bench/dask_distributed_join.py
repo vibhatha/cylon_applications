@@ -88,10 +88,12 @@ def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
 
     client.persist([df_l, df_r])
 
+    join_column = df_l.columns[0]
+
     print("left rows", len(df_l), flush=True)
     print("right rows", len(df_r), flush=True)
     join_time = time.time()
-    out = df_l.merge(df_r, on='0', how='inner', suffixes=('_left', '_right')).compute()
+    out = df_l.merge(df_r, on=join_column, how='inner', suffixes=('_left', '_right')).compute()
     join_time = time.time() - join_time
 
     #print(client)
