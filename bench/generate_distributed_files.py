@@ -1,26 +1,19 @@
-import time
-import pandas as pd
-import pycylon as cn
-import numpy as np
-from pycylon import CylonContext
-from pycylon import Table
-from pycylon.index import RangeIndex
-from bench_util import get_dataframe
-from bench_util import line_separator
-import pyarrow as pa
 import argparse
-from pycylon.io import CSVReadOptions
-from pycylon.io import read_csv
 import os
 
+import numpy as np
+
+from bench_util import get_dataframe
+from bench_util import line_separator
+
 """
-python3 generate_distributed_files.py --start_size 20 \
-                                        --step_size 20 \
-                                        --end_size 40 \
+python3 generate_distributed_files.py --start_size 1_000_000 \
+                                        --step_size 1_000_000 \
+                                        --end_size 4_000_000 \
                                         --unique_factor 0.1 \
                                         --num_cols 2 \
                                         --file_path ~/data/cylon_bench \
-                                        --parallelism 2
+                                        --parallelism 4
 """
 
 
