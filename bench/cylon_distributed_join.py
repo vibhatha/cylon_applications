@@ -45,9 +45,9 @@ from pycylon.net import MPIConfig
 """
 Run benchmark:
 
->>> mpirun -n 4 python cylon_distributed_join.py --start_size 1_000_000 \
-                                        --step_size 1_000_000 \
-                                        --end_size 4_000_000 \
+>>> mpirun -n 64 python cylon_distributed_join.py --start_size 100_000_000 \
+                                        --step_size 100_000_000 \
+                                        --end_size 500_000_000 \
                                         --num_cols 2 \
                                         --stats_file /tmp/dist_sort_join_bench.csv \
                                         --repetitions 1 \
@@ -56,7 +56,7 @@ Run benchmark:
 """
 
 
-def join_op(ctx: CylonContext, num_rows: int, base_file_path: str, algorithm: str):
+def join_op(ctx, num_rows, base_file_path, algorithm):
     parallelism = ctx.get_world_size()
 
     csv_read_options = CSVReadOptions() \
@@ -81,9 +81,7 @@ def join_op(ctx: CylonContext, num_rows: int, base_file_path: str, algorithm: st
     return cylon_time
 
 
-def bench_join_op(ctx: CylonContext, start: int, end: int, step: int, num_cols: int, algorithm: str, repetitions: int,
-                  stats_file: str,
-                  base_file_path: str):
+def bench_join_op(ctx, start, end, step, num_cols, algorithm, repetitions, stats_file, base_file_path):
     all_data = []
     schema = ["num_records", "num_cols", "algorithm", "time(s)"]
     assert repetitions >= 1
