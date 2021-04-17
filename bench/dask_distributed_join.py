@@ -73,34 +73,33 @@ def stop_cluster(ips):
 
 
 def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
-
-    def join_func(num_rows, parallelism, num_nodes):
-        print("Join Function")
-        sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
-        distributed_file_prefix = "single_data_file.csv"
-        left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
-        right_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
-        if not (os.path.exists(left_file_path) and os.path.exists(right_file_path)):
-            print("File Path invalid: {}, {}".format(left_file_path, right_file_path))
-            return 0
-        df_l = dd.read_csv(left_file_path).repartition(npartitions=num_nodes)
-        df_r = dd.read_csv(right_file_path).repartition(npartitions=num_nodes)
-
-        client.persist([df_l, df_r])
-
-        print("left rows", len(df_l), flush=True)
-        print("right rows", len(df_r), flush=True)
-        join_time = time.time()
-        out = df_l.merge(df_r, on='0', how='inner', suffixes=('_left', '_right')).compute()
-        join_time = time.time() - join_time
-        return join_time
-
+    print("Join Function")
     client = Client(scheduler_host + ':8786')
     print(client)
-    dask_time_future = client.submit(join_func, args=(num_rows, parallelism, num_nodes))
-    dask_time = dask_time_future.result()
-    client.close()
-    return dask_time
+    sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
+    distributed_file_prefix = "single_data_file.csv"
+    left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
+    right_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
+    if not (os.path.exists(left_file_path) and os.path.exists(right_file_path)):
+        print("File Path invalid: {}, {}".format(left_file_path, right_file_path))
+        return 0
+    df_l = dd.read_csv(left_file_path).repartition(npartitions=num_nodes)
+    df_r = dd.read_csv(right_file_path).repartition(npartitions=num_nodes)
+
+    client.persist([df_l, df_r])
+
+    print("left rows", len(df_l), flush=True)
+    print("right rows", len(df_r), flush=True)
+    join_time = time.time()
+    out = df_l.merge(df_r, on='0', how='inner', suffixes=('_left', '_right')).compute()
+    join_time = time.time() - join_time
+
+    #print(client)
+    #dask_time_future = client.submit(join_func, args=(num_rows, parallelism, num_nodes))
+    #dask_time = dask_time_future.result()
+    #client.close()
+
+    return join_time
 
 
 def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, num_nodes, parallelism):
