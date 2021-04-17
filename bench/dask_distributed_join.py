@@ -40,7 +40,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
     #     ["ssh", "v-001", "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-scheduler", "--interface", "enp175s0f0",
     #      "--scheduler-file", "/N/u2/d/dnperera/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     subprocess.Popen(
-        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--interface", "enp175s0f1"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     time.sleep(5)
 
@@ -83,8 +83,8 @@ def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
     if not (os.path.exists(left_file_path) and os.path.exists(right_file_path)):
         print("File Path invalid: {}, {}".format(left_file_path, right_file_path))
         return 0
-    df_l = dd.read_csv(left_file_path).repartition(npartitions=num_nodes)
-    df_r = dd.read_csv(right_file_path).repartition(npartitions=num_nodes)
+    df_l = dd.read_csv(left_file_path).repartition(npartitions=parallelism)
+    df_r = dd.read_csv(right_file_path).repartition(npartitions=parallelism)
 
     client.persist([df_l, df_r])
 
@@ -95,12 +95,6 @@ def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
     join_time = time.time()
     out = df_l.merge(df_r, on=join_column, how='inner', suffixes=('_left', '_right')).compute()
     join_time = time.time() - join_time
-
-    #print(client)
-    #dask_time_future = client.submit(join_func, args=(num_rows, parallelism, num_nodes))
-    #dask_time = dask_time_future.result()
-    #client.close()
-
     return join_time
 
 
