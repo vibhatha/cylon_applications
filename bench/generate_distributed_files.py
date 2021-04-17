@@ -38,12 +38,12 @@ def generation_op(start: int, end: int, step: int, num_cols: int, file_path: str
             os.mkdir(new_sub_data_dir_path)
         pdf = get_dataframe(num_rows=records, num_cols=num_cols, unique_factor=unique_factor)
         pdf_splits = np.array_split(pdf, parallelism)
+        seq_file_save_path = os.path.join(new_sub_data_dir_path, sequential_file)
+        pdf.to_csv(seq_file_save_path, sep=",", index=False)
         for rank in range(parallelism):
             distributed_file_name = distributed_file_prefix + "_rank_{}.csv".format(rank)
             dist_file_save_path = os.path.join(new_sub_data_dir_path, distributed_file_name)
-            seq_file_save_path = os.path.join(new_sub_data_dir_path, sequential_file)
             print(pdf.shape, pdf_splits[rank].shape)
-            pdf.to_csv(seq_file_save_path, sep=",", index=False)
             pdf_splits[rank].to_csv(dist_file_save_path, sep=",", index=False)
 
 
