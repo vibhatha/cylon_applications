@@ -72,9 +72,9 @@ def stop_cluster(ips):
     time.sleep(5)
 
 
-def dask_join(scheduler_host, num_rows, base_file_path, num_nodes):
+def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
 
-    def join_func():
+    def join_func(num_rows, parallelism, num_nodes):
         sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
         distributed_file_prefix = "single_data_file.csv"
         left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
@@ -93,13 +93,13 @@ def dask_join(scheduler_host, num_rows, base_file_path, num_nodes):
 
     client = Client(scheduler_host + ':8786')
     print(client)
-    dask_time_future = client.submit(join_func)
+    dask_time_future = client.submit(join_func, args=(num_rows, parallelism, num_nodes))
     dask_time = dask_time_future.result()
     client.close()
     return dask_time
 
 
-def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, num_nodes):
+def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, num_nodes, parallelism):
     all_data = []
     schema = ["num_records", "num_cols", "time(s)"]
     assert repetitions >= 1
@@ -110,7 +110,7 @@ def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file
         times = []
         for idx in range(repetitions):
             dask_time = dask_join(scheduler_host=scheduler_host, num_rows=records, base_file_path=base_file_path,
-                                  num_nodes=num_nodes)
+                                  num_nodes=num_nodes, parallelism=parallelism)
             times.append([dask_time])
         times = np.array(times).sum(axis=0) / repetitions
         print("Join Op : Records={}, Columns={}, Dask Time : {}".format(records, num_cols, times[0]))
@@ -192,5 +192,6 @@ if __name__ == '__main__':
                   repetitions=args.repetitions,
                   stats_file=args.stats_file,
                   base_file_path=args.base_file_path,
-                  num_nodes=args.total_nodes)
+                  num_nodes=args.total_nodes,
+                  parallelism=parallelism)
     stop_cluster(ips)
