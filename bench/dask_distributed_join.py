@@ -80,6 +80,9 @@ def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
         distributed_file_prefix = "single_data_file.csv"
         left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
         right_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
+        if not (os.path.exists(left_file_path) and os.path.exists(right_file_path)):
+            print("File Path invalid: {}, {}".format(left_file_path, right_file_path))
+            return 0
         df_l = dd.read_csv(left_file_path).repartition(npartitions=num_nodes)
         df_r = dd.read_csv(right_file_path).repartition(npartitions=num_nodes)
 
