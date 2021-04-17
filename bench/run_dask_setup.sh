@@ -1,0 +1,12 @@
+python dask_setup.py --start_size 100_000_000 \
+                                        --step_size 100_000_000 \
+                                        --end_size 500_000_000 \
+                                        --num_cols 2 \
+                                        --stats_file /tmp/dask_dist_join_bench.csv \
+                                        --repetitions 3 \
+                                        --base_file_path ~/data/cylon_bench \
+                                        --parallelism 4 \
+                                        --nodes_file /tmp/hostfile \
+                                        --total_nodes 1 \
+                                        --scheduler_host v-001 \
+                                        --python_env /home/vibhatha/venv/ENVCYLON
