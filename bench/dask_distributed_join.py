@@ -1,74 +1,99 @@
-##
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-##
-
-import argparse
 import os
-import time
 
-import numpy as np
-import pandas as pd
-from pycylon import CylonContext
-from pycylon.io import CSVReadOptions
-from pycylon.io import read_csv
-from pycylon.net import MPIConfig
+import dask
 import dask.dataframe as dd
 from dask.distributed import Client, SSHCluster
+import pandas as pd
+import time
+import argparse
+import math
 import subprocess
-
+import numpy as np
 
 """
-Run benchmark:
-
->>> mpirun -n 64 python dask_distributed_join.py --start_size 100_000_000 \
+>>> python dask_setup.py --start_size 100_000_000 \
                                         --step_size 100_000_000 \
                                         --end_size 500_000_000 \
                                         --num_cols 2 \
                                         --stats_file /tmp/dask_dist_join_bench.csv \
                                         --repetitions 3 \
                                         --base_file_path ~/data/cylon_bench \
-                                        --algorithm sort
+                                        --parallelism 4 \
+                                        --nodes_file /tmp/hostfile \
+                                        --total_nodes 1 \
+                                        --scheduler_host v-001 \
+                                        --python_env /home/vibhatha/venv/ENVCYLON
 """
 
 
-def join_op(ctx, num_rows, base_file_path, algorithm):
-    parallelism = ctx.get_world_size()
-
-    csv_read_options = CSVReadOptions() \
-        .use_threads(True) \
-        .block_size(1 << 30)
-
-    sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
-    distributed_file_prefix = "single_data_file.csv"
-
-    left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
-    right_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
-
-    tb_left = read_csv(ctx, left_file_path, csv_read_options)
-    tb_right = read_csv(ctx, right_file_path, csv_read_options)
-
-    join_col = tb_left.column_names[0]
-
-    cylon_time = time.time()
-    tb2 = tb_left.distributed_join(tb_right, join_type='inner', algorithm=algorithm, on=[join_col])
-    cylon_time = time.time() - cylon_time
-
-    return cylon_time
+def get_ips(nodes_file):
+    ips = []
+    with open(nodes_file, 'r') as fp:
+        for l in fp.readlines():
+            ips.append(l.split(' ')[0])
+    return ips
 
 
-def bench_join_op(ctx, start, end, step, num_cols, algorithm, repetitions, stats_file, base_file_path):
+def start_cluster(ips, scheduler_host, python_env, procs, nodes):
+    print("starting scheduler", flush=True)
+    # subprocess.Popen(
+    #     ["ssh", "v-001", "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-scheduler", "--interface", "enp175s0f0",
+    #      "--scheduler-file", "/N/u2/d/dnperera/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    subprocess.Popen(
+        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    time.sleep(5)
+
+    for ip in ips[0:nodes]:
+        print("starting worker", ip, flush=True)
+        # subprocess.Popen(
+        #     ["ssh", ip, "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-worker", "v-001:8786", "--interface",
+        #      "enp175s0f0", "--nthreads", "1", "--nprocs", str(procs), "--memory-limit", "20GB", "--local-directory",
+        #      "/scratch/dnperera/dask/", "--scheduler-file", "/N/u2/d/dnperera/dask-sched.json"], stdout=subprocess.PIPE,
+        #     stderr=subprocess.STDOUT)
+        subprocess.Popen(
+            ["ssh", ip, python_env + "/bin/dask-worker", scheduler_host + ":8786", "--nthreads", "1", "--nprocs",
+             str(procs), "--memory-limit", "20GB", "--local-directory", "/scratch/vlabeyko/dask/"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+
+    time.sleep(5)
+
+
+def stop_cluster(ips):
+    for ip in ips:
+        print("stopping worker", ip, flush=True)
+        subprocess.run(["ssh", ip, "pkill", "-f", "dask-worker"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    time.sleep(5)
+
+    print("stopping scheduler", flush=True)
+    subprocess.run(["pkill", "-f", "dask-scheduler"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    time.sleep(5)
+
+
+def dask_join(scheduler_host, num_rows, base_file_path):
+    def func():
+        df = dask.datasets.timeseries()
+        df2 = df[df.y > 0]
+        df3 = df2.groupby('name').x.std()
+        computed_df = df3.compute()
+        return computed_df
+
+    client = Client(scheduler_host + ':8786')
+    print(client)
+    dask_time = time.time()
+    future = client.submit(func)
+    result = future.result()
+    dask_time = time.time() - dask_time
+    print(result)
+    client.close()
+    return dask_time
+
+
+def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path):
     all_data = []
-    schema = ["num_records", "num_cols", "algorithm", "time(s)"]
+    schema = ["num_records", "num_cols", "time(s)"]
     assert repetitions >= 1
     assert start > 0
     assert step > 0
@@ -76,16 +101,14 @@ def bench_join_op(ctx, start, end, step, num_cols, algorithm, repetitions, stats
     for records in range(start, end + step, step):
         times = []
         for idx in range(repetitions):
-            cylon_time = join_op(ctx=ctx, num_rows=records, base_file_path=base_file_path, algorithm=algorithm)
-            times.append([cylon_time])
+            dask_time = dask_join(scheduler_host=scheduler_host, num_rows=records, base_file_path=base_file_path)
+            times.append(dask_time)
         times = np.array(times).sum(axis=0) / repetitions
-        if ctx.get_rank() == 0:
-            print("Join Op : Records={}, Columns={}, Cylon Time : {}".format(records, num_cols, times[0]))
-            all_data.append(
-                [records, num_cols, algorithm, times[0]])
-            pdf = pd.DataFrame(all_data, columns=schema)
-            print(pdf)
-            pdf.to_csv(stats_file)
+        print("Join Op : Records={}, Columns={}, Dask Time : {}".format(records, num_cols, times[0]))
+        all_data.append([records, num_cols, times[0]])
+    pdf = pd.DataFrame(all_data, columns=schema)
+    print(pdf)
+    pdf.to_csv(stats_file)
 
 
 if __name__ == '__main__':
@@ -96,18 +119,12 @@ if __name__ == '__main__':
     parser.add_argument("-e", "--end_size",
                         help="end data size",
                         type=int)
-    parser.add_argument("-d", "--duplication_factor",
-                        help="random data duplication factor",
-                        type=float)
     parser.add_argument("-s", "--step_size",
                         help="Step size",
                         type=int)
     parser.add_argument("-c", "--num_cols",
                         help="number of columns",
                         type=int)
-    parser.add_argument("-a", "--algorithm",
-                        help="join algorithm [hash or sort]",
-                        type=str)
     parser.add_argument("-r", "--repetitions",
                         help="number of experiments to be repeated",
                         type=int)
@@ -117,6 +134,21 @@ if __name__ == '__main__':
     parser.add_argument("-bf", "--base_file_path",
                         help="base file path",
                         type=str)
+    parser.add_argument("-p", "--parallelism",
+                        help="parallelism",
+                        type=int)
+    parser.add_argument("-n", "--total_nodes",
+                        help="total nodes",
+                        type=int)
+    parser.add_argument("-nf", "--nodes_file",
+                        help="nodes file",
+                        type=str)
+    parser.add_argument("-sh", "--scheduler_host",
+                        help="scheduler host",
+                        type=str)
+    parser.add_argument("-pe", "--python_env",
+                        help="python env",
+                        type=str)
 
     args = parser.parse_args()
     print("Start Data Size : {}".format(args.start_size))
@@ -124,18 +156,31 @@ if __name__ == '__main__':
     print("Step Data Size : {}".format(args.step_size))
     print("Number of Columns : {}".format(args.num_cols))
     print("Number of Repetitions : {}".format(args.repetitions))
-    print("Join Algorithm : {}".format(args.algorithm))
     print("Stats File : {}".format(args.stats_file))
     print("Base File Path : {}".format(args.base_file_path))
-    mpi_config = MPIConfig()
-    ctx = CylonContext(config=mpi_config, distributed=True)
-    bench_join_op(ctx=ctx,
-                  start=args.start_size,
+    print("Total Nodes : {}".format(args.total_nodes))
+    print("Parallelism : {}".format(args.parallelism))
+    print("Nodes File : {}".format(args.nodes_file))
+    print("Scheduler Host : {}".format(args.scheduler_host))
+    print("Python ENV : {}".format(args.python_env))
+
+    parallelism = args.parallelism
+    TOTAL_NODES = args.total_nodes
+    procs = int(math.ceil(parallelism / TOTAL_NODES))
+    nodes = min(parallelism, TOTAL_NODES)
+    ips = get_ips(args.nodes_file)
+    python_env = args.python_env
+    scheduler_host = args.scheduler_host
+    print("NODES : ", ips)
+    print("Processes Per Node: ", procs)
+
+    stop_cluster(ips)
+    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
+    bench_join_op(start=args.start_size,
                   end=args.end_size,
                   step=args.step_size,
                   num_cols=args.num_cols,
-                  algorithm=args.algorithm,
                   repetitions=args.repetitions,
                   stats_file=args.stats_file,
                   base_file_path=args.base_file_path)
-    ctx.finalize()
+    stop_cluster(ips)
