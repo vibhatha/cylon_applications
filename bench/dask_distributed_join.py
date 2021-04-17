@@ -75,6 +75,7 @@ def stop_cluster(ips):
 def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
 
     def join_func(num_rows, parallelism, num_nodes):
+        print("Join Function")
         sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
         distributed_file_prefix = "single_data_file.csv"
         left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
