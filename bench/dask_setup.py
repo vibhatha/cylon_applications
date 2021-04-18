@@ -39,7 +39,8 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
     #     ["ssh", "v-001", "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-scheduler", "--interface", "enp175s0f0",
     #      "--scheduler-file", "/N/u2/d/dnperera/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     subprocess.Popen(
-        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--scheduler-file",
+         "/N/u2/v/vlabeyko/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     time.sleep(5)
 
@@ -52,7 +53,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
         #     stderr=subprocess.STDOUT)
         subprocess.Popen(
             ["ssh", ip, python_env + "/bin/dask-worker", scheduler_host + ":8786", "--nthreads", "1", "--nprocs",
-             str(procs), "--memory-limit", "20GB", "--local-directory", "/scratch/vlabeyko/dask/"],
+             str(procs), "--memory-limit", "20GB", "--local-directory", "/scratch/vlabeyko/dask/", "--scheduler-file", "/N/u2/v/vlabeyko/dask-sched.json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
 
@@ -79,7 +80,7 @@ def dask_test_app(scheduler_host):
         computed_df = df3.compute()
         return computed_df
 
-    client = Client(scheduler_host+':8786')
+    client = Client(scheduler_host + ':8786')
     print(client)
 
     future = client.submit(func)
@@ -155,4 +156,5 @@ if __name__ == '__main__':
     stop_cluster(ips)
     start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
     dask_test_app(scheduler_host=scheduler_host)
+    time.sleep(240)
     stop_cluster(ips)
