@@ -19,7 +19,7 @@ import numpy as np
                                         --repetitions 3 \
                                         --base_file_path ~/data/cylon_bench \
                                         --parallelism 64 \
-                                        --nodes_file /tmp/hostfile \
+                                        --nodes_file /hostfiles/hostfile_victor_8x16 \
                                         --total_nodes 8 \
                                         --scheduler_host v-001 \
                                         --python_env /home/vibhatha/venv/ENVCYLON

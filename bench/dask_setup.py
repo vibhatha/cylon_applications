@@ -42,7 +42,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
         ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--scheduler-file",
          "/N/u2/v/vlabeyko/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    time.sleep(5)
+    time.sleep(15)
 
     for ip in ips[0:nodes]:
         print("starting worker", ip, flush=True)
@@ -57,7 +57,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
 
-    time.sleep(5)
+    time.sleep(15)
 
 
 def stop_cluster(ips):
