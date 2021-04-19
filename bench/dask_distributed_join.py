@@ -212,9 +212,9 @@ if __name__ == '__main__':
     print("NODES : ", ips)
     print("Processes Per Node: ", procs)
 
-    stop_cluster(ips)
-    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
-                  memory_limit_per_worker=args.memory_limit_per_worker, network_interface=args.network_interface)
+    # stop_cluster(ips)
+    # start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
+    #              memory_limit_per_worker=args.memory_limit_per_worker, network_interface=args.network_interface)
     bench_join_op(start=args.start_size,
                   end=args.end_size,
                   step=args.step_size,
@@ -224,4 +224,4 @@ if __name__ == '__main__':
                   base_file_path=args.base_file_path,
                   num_nodes=args.total_nodes,
                   parallelism=parallelism)
-    stop_cluster(ips)
+    # stop_cluster(ips)

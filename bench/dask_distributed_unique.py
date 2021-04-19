@@ -90,11 +90,11 @@ def dask_drop_duplicates(scheduler_host, num_rows, base_file_path, num_nodes, pa
     client = Client(scheduler_host + ':8786')
     print(client)
     sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
-    distributed_file_prefix = "single_data_file.csv"
+    distributed_file_prefix = "distributed_data_file_rank_*.csv"
     file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
-    if not os.path.exists(file_path):
-        print("File Path invalid: {}".format(file_path))
-        return 0
+    # if not os.path.exists(file_path):
+    #     print("File Path invalid: {}".format(file_path))
+    #     return 0
     df_l = dd.read_csv(file_path).repartition(npartitions=parallelism)
     client.persist([df_l])
     print("rows", len(df_l), flush=True)
@@ -198,9 +198,9 @@ if __name__ == '__main__':
     print("NODES : ", ips)
     print("Processes Per Node: ", procs)
 
-    stop_cluster(ips)
-    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
-                  memory_limit_per_worker=args.memory_limit_per_worker, network_interface=args.network_interface)
+    # stop_cluster(ips)
+    # start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
+    #              memory_limit_per_worker=args.memory_limit_per_worker, network_interface=args.network_interface)
     bench_drop_duplicates_op(start=args.start_size,
                              end=args.end_size,
                              step=args.step_size,
@@ -210,4 +210,4 @@ if __name__ == '__main__':
                              base_file_path=args.base_file_path,
                              num_nodes=args.total_nodes,
                              parallelism=parallelism)
-    stop_cluster(ips)
+    # stop_cluster(ips)
