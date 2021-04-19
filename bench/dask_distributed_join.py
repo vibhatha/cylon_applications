@@ -45,12 +45,13 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes, memory_limit_pe
             ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--scheduler-file",
              "/N/u2/v/vlabeyko/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     elif network_interface and network_interface != "none":
+        print("With Network interface : {}".format(network_interface))
         subprocess.Popen(
             ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--scheduler-file", "--interface",
              network_interface,
              "/N/u2/v/vlabeyko/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    time.sleep(5)
+    time.sleep(30)
 
     for ip in ips[0:nodes]:
         print("starting worker {}, With Processes : {}".format(ip, procs), flush=True)
@@ -68,6 +69,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes, memory_limit_pe
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)
         elif network_interface and network_interface != 'none':
+            print("With Network interface : {}".format(network_interface))
             subprocess.Popen(
                 ["ssh", ip, python_env + "/bin/dask-worker", scheduler_host + ":8786", "--nthreads", "1", "--nprocs",
                  str(procs), "--memory-limit", memory_limit_per_worker, "--interface", network_interface,
@@ -77,7 +79,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes, memory_limit_pe
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)
 
-    time.sleep(5)
+    time.sleep(30)
 
 
 def stop_cluster(ips):
