@@ -26,11 +26,11 @@ from pycylon.net import MPIConfig
 """
 Run benchmark:
 
->>> mpirun -n 4 python cylon_distributed_unique.py --start_size 1_000_000 \
-                                        --step_size 1_000_000 \
-                                        --end_size 4_000_000 \
+>>> mpirun -n 4 python cylon_distributed_unique.py --start_size 100_000_000 \
+                                        --step_size 100_000_000 \
+                                        --end_size 400_000_000 \
                                         --num_cols 2 \
-                                        --stats_file /tmp/dist_unique_bench.csv \
+                                        --stats_file dist_unique_bench_test_v2.csv \
                                         --repetitions 1 \
                                         --base_file_path ~/data/cylon_bench
                                         
