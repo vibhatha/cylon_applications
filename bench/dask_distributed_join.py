@@ -40,9 +40,15 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes, memory_limit_pe
     # subprocess.Popen(
     #     ["ssh", "v-001", "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-scheduler", "--interface", "enp175s0f0",
     #      "--scheduler-file", "/N/u2/d/dnperera/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    subprocess.Popen(
-        ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--scheduler-file",
-         "/N/u2/v/vlabeyko/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if network_interface == "none":
+        subprocess.Popen(
+            ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--scheduler-file",
+             "/N/u2/v/vlabeyko/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    elif network_interface and network_interface != "none":
+        subprocess.Popen(
+            ["ssh", scheduler_host, python_env + "/bin/dask-scheduler", "--scheduler-file", "--interface",
+             network_interface,
+             "/N/u2/v/vlabeyko/dask-sched.json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     time.sleep(5)
 
