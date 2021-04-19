@@ -34,7 +34,7 @@ def get_ips(nodes_file):
     return ips
 
 
-def start_cluster(ips, scheduler_host, python_env, procs, nodes):
+def start_cluster(ips, scheduler_host, python_env, procs, nodes, memory_limit_per_worker, network_interface):
     print("starting scheduler", flush=True)
     # subprocess.Popen(
     #     ["ssh", "v-001", "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-scheduler", "--interface", "enp175s0f0",
@@ -46,18 +46,29 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
     time.sleep(5)
 
     for ip in ips[0:nodes]:
-        print("starting worker", ip, flush=True)
+        print("starting worker {}, With Processes : {}".format(ip, procs), flush=True)
         # subprocess.Popen(
         #     ["ssh", ip, "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-worker", "v-001:8786", "--interface",
         #      "enp175s0f0", "--nthreads", "1", "--nprocs", str(procs), "--memory-limit", "20GB", "--local-directory",
         #      "/scratch/dnperera/dask/", "--scheduler-file", "/N/u2/d/dnperera/dask-sched.json"], stdout=subprocess.PIPE,
         #     stderr=subprocess.STDOUT)
-        subprocess.Popen(
-            ["ssh", ip, python_env + "/bin/dask-worker", scheduler_host + ":8786", "--nthreads", "1", "--nprocs",
-             str(procs), "--memory-limit", "20GB", "--local-directory", "/scratch/vlabeyko/dask/", "--scheduler-file",
-             "/N/u2/v/vlabeyko/dask-sched.json"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+        if network_interface == "none":
+            subprocess.Popen(
+                ["ssh", ip, python_env + "/bin/dask-worker", scheduler_host + ":8786", "--nthreads", "1", "--nprocs",
+                 str(procs), "--memory-limit", memory_limit_per_worker, "--local-directory", "/scratch/vlabeyko/dask/",
+                 "--scheduler-file",
+                 "/N/u2/v/vlabeyko/dask-sched.json"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
+        elif network_interface and network_interface != 'none':
+            subprocess.Popen(
+                ["ssh", ip, python_env + "/bin/dask-worker", scheduler_host + ":8786", "--nthreads", "1", "--nprocs",
+                 str(procs), "--memory-limit", memory_limit_per_worker, "--interface", network_interface,
+                 "--local-directory", "/scratch/vlabeyko/dask/",
+                 "--scheduler-file",
+                 "/N/u2/v/vlabeyko/dask-sched.json"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
 
     time.sleep(5)
 
@@ -148,6 +159,12 @@ if __name__ == '__main__':
     parser.add_argument("-nf", "--nodes_file",
                         help="nodes file",
                         type=str)
+    parser.add_argument("-ml", "--memory_limit_per_worker",
+                        help="memory limit per worker",
+                        type=str)
+    parser.add_argument("-ni", "--network_interface",
+                        help="network interface",
+                        type=str)
     parser.add_argument("-sh", "--scheduler_host",
                         help="scheduler host",
                         type=str)
@@ -164,6 +181,8 @@ if __name__ == '__main__':
     print("Stats File : {}".format(args.stats_file))
     print("Base File Path : {}".format(args.base_file_path))
     print("Total Nodes : {}".format(args.total_nodes))
+    print("Memory limit per worker : {}".format(args.memory_limit_per_worker))
+    print("Network Interface : {}".format(args.network_interface))
     print("Parallelism : {}".format(args.parallelism))
     print("Nodes File : {}".format(args.nodes_file))
     print("Scheduler Host : {}".format(args.scheduler_host))
@@ -180,7 +199,8 @@ if __name__ == '__main__':
     print("Processes Per Node: ", procs)
 
     stop_cluster(ips)
-    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
+    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
+                  memory_limit_per_worker=args.memory_limit_per_worker, network_interface=args.network_interface)
     bench_drop_duplicates_op(start=args.start_size,
                              end=args.end_size,
                              step=args.step_size,
