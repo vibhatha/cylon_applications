@@ -46,7 +46,7 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
     time.sleep(5)
 
     for ip in ips[0:nodes]:
-        print("starting worker", ip, flush=True)
+        print("starting worker {}, With Processes : {}".format(ip, procs), flush=True)
         # subprocess.Popen(
         #     ["ssh", ip, "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-worker", "v-001:8786", "--interface",
         #      "enp175s0f0", "--nthreads", "1", "--nprocs", str(procs), "--memory-limit", "20GB", "--local-directory",
