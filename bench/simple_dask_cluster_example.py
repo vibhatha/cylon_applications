@@ -1,4 +1,4 @@
-from bench.dask_cluster import DaskCluster
+from dask_cluster import DaskCluster
 from dask.distributed import Client
 import time
 
