@@ -22,6 +22,7 @@ import numpy as np
                                         --nodes_file /hostfiles/hostfile_victor_8x16 \
                                         --total_nodes 8 \
                                         --scheduler_host v-001 \
+                                        --memory_limit_per_worker 4G \
                                         --python_env /home/vibhatha/venv/ENVCYLON
 """
 
@@ -34,7 +35,7 @@ def get_ips(nodes_file):
     return ips
 
 
-def start_cluster(ips, scheduler_host, python_env, procs, nodes):
+def start_cluster(ips, scheduler_host, python_env, procs, nodes, memory_limit_per_worker):
     print("starting scheduler", flush=True)
     # subprocess.Popen(
     #     ["ssh", "v-001", "/N/u2/d/dnperera/victor/git/cylon/ENV/bin/dask-scheduler", "--interface", "enp175s0f0",
@@ -54,7 +55,8 @@ def start_cluster(ips, scheduler_host, python_env, procs, nodes):
         #     stderr=subprocess.STDOUT)
         subprocess.Popen(
             ["ssh", ip, python_env + "/bin/dask-worker", scheduler_host + ":8786", "--nthreads", "1", "--nprocs",
-             str(procs), "--memory-limit", "20GB", "--local-directory", "/scratch/vlabeyko/dask/", "--scheduler-file",
+             str(procs), "--memory-limit", memory_limit_per_worker, "--local-directory", "/scratch/vlabeyko/dask/",
+             "--scheduler-file",
              "/N/u2/v/vlabeyko/dask-sched.json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
@@ -150,6 +152,9 @@ if __name__ == '__main__':
     parser.add_argument("-n", "--total_nodes",
                         help="total nodes",
                         type=int)
+    parser.add_argument("-ml", "--memory_limit_per_worker",
+                        help="memory limit per worker",
+                        type=str)
     parser.add_argument("-nf", "--nodes_file",
                         help="nodes file",
                         type=str)
@@ -169,6 +174,7 @@ if __name__ == '__main__':
     print("Stats File : {}".format(args.stats_file))
     print("Base File Path : {}".format(args.base_file_path))
     print("Total Nodes : {}".format(args.total_nodes))
+    print("Memory limit per worker : {}".format(args.memory_limit_per_worker))
     print("Parallelism : {}".format(args.parallelism))
     print("Nodes File : {}".format(args.nodes_file))
     print("Scheduler Host : {}".format(args.scheduler_host))
@@ -185,7 +191,8 @@ if __name__ == '__main__':
     print("Processes Per Node: ", procs)
 
     stop_cluster(ips)
-    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes)
+    start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
+                  memory_limit_per_worker=args.memory_limit_per_worker)
     bench_join_op(start=args.start_size,
                   end=args.end_size,
                   step=args.step_size,

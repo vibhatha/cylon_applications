@@ -116,16 +116,18 @@ if __name__ == '__main__':
                         type=str)
 
     args = parser.parse_args()
-    print("Start Data Size : {}".format(args.start_size))
-    print("End Data Size : {}".format(args.end_size))
-    print("Step Data Size : {}".format(args.step_size))
-    print("Number of Columns : {}".format(args.num_cols))
-    print("Number of Repetitions : {}".format(args.repetitions))
-    print("Join Algorithm : {}".format(args.algorithm))
-    print("Stats File : {}".format(args.stats_file))
-    print("Base File Path : {}".format(args.base_file_path))
     mpi_config = MPIConfig()
     ctx = CylonContext(config=mpi_config, distributed=True)
+    if ctx.get_rank() == 0:
+        print("Start Data Size : {}".format(args.start_size))
+        print("End Data Size : {}".format(args.end_size))
+        print("Step Data Size : {}".format(args.step_size))
+        print("Number of Columns : {}".format(args.num_cols))
+        print("Number of Repetitions : {}".format(args.repetitions))
+        print("Join Algorithm : {}".format(args.algorithm))
+        print("Stats File : {}".format(args.stats_file))
+        print("Base File Path : {}".format(args.base_file_path))
+
     bench_join_op(ctx=ctx,
                   start=args.start_size,
                   end=args.end_size,
