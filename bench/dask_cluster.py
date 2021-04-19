@@ -65,9 +65,13 @@ class DaskCluster(object):
     def start_cluster(self):
         print("Start Cluster")
         self.start_scheduler()
+        print("Scheduler Started")
         self.start_workers()
+        print("Workers Started")
 
     def stop_cluster(self):
         print("Stop Cluster")
         self.stop_workers()
+        print("Stopped Workers")
         self.stop_scheduler()
+        print("Stopped Scheduler")

@@ -99,7 +99,7 @@ def dask_join(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
     client = Client(scheduler_host + ':8786')
     print(client)
     sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
-    distributed_file_prefix = "single_data_file.csv"
+    distributed_file_prefix = "distributed_data_file_rank_*.csv"
     left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
     right_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
     if not (os.path.exists(left_file_path) and os.path.exists(right_file_path)):
