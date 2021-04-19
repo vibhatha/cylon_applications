@@ -29,6 +29,7 @@ class DaskCluster(object):
         self.wait = wait
 
     def start_scheduler(self):
+        print("Starting Scheduler")
         subprocess.Popen(
             ["ssh", self.scheduler_host, self.python_env + "/bin/dask-scheduler", "--scheduler-file", "--interface",
              self.network_interface,
@@ -37,10 +38,11 @@ class DaskCluster(object):
 
     def start_workers(self):
         for ip in self.ips[0:self.num_nodes]:
+            print("Starting Worker : {}".format(ip))
             subprocess.Popen(
                 ["ssh", ip, self.python_env + "/bin/dask-worker", self.scheduler_host + ":8786", "--nthreads",
                  str(self.nthreads), "--nprocs",
-                 str(self.procs), "--memory-limit", self.memory_limit_per_worker, "--interface", self.network_interface,
+                 str(self.nprocs), "--memory-limit", self.memory_limit, "--interface", self.network_interface,
                  "--local-directory", self.local_directory,
                  "--scheduler-file",
                  self.scheduler_file],
@@ -49,19 +51,23 @@ class DaskCluster(object):
         time.sleep(self.wait)
 
     def stop_scheduler(self):
+        print("Stopping scheduler")
         subprocess.run(["pkill", "-f", "dask-scheduler"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         time.sleep(self.wait)
 
     def stop_workers(self):
+        print("Stopping workers")
         for ip in self.ips:
             print("stopping worker", ip, flush=True)
             subprocess.run(["ssh", ip, "pkill", "-f", "dask-worker"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         time.sleep(self.wait)
 
     def start_cluster(self):
+        print("Start Cluster")
         self.start_scheduler()
         self.start_workers()
 
     def stop_cluster(self):
+        print("Stop Cluster")
         self.stop_workers()
         self.stop_scheduler()
