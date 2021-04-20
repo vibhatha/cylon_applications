@@ -209,14 +209,18 @@ if __name__ == '__main__':
     # start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
     #              memory_limit_per_worker=args.memory_limit_per_worker, network_interface=args.network_interface)
     dask_cluster.start_cluster()
-    bench_drop_duplicates_op(start=args.start_size,
-                             end=args.end_size,
-                             step=args.step_size,
-                             num_cols=args.num_cols,
-                             repetitions=args.repetitions,
-                             stats_file=args.stats_file,
-                             base_file_path=args.base_file_path,
-                             num_nodes=args.total_nodes,
-                             parallelism=parallelism)
-    # stop_cluster(ips)
-    dask_cluster.stop_cluster()
+    try:
+        bench_drop_duplicates_op(start=args.start_size,
+                                 end=args.end_size,
+                                 step=args.step_size,
+                                 num_cols=args.num_cols,
+                                 repetitions=args.repetitions,
+                                 stats_file=args.stats_file,
+                                 base_file_path=args.base_file_path,
+                                 num_nodes=args.total_nodes,
+                                 parallelism=parallelism)
+    except Exception as e:
+        print("Exception Occurred : {}".format(str(e)))
+        dask_cluster.stop_cluster()
+    finally:
+        dask_cluster.stop_cluster()
