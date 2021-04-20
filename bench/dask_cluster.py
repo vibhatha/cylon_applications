@@ -31,9 +31,9 @@ class DaskCluster(object):
     def start_scheduler(self):
         print("Starting Scheduler")
         subprocess.Popen(
-            ["ssh", self.scheduler_host, self.python_env + "/bin/dask-scheduler", "--scheduler-file", "--interface",
-             str(self.network_interface),
-             self.scheduler_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            ["ssh", self.scheduler_host, self.python_env + "/bin/dask-scheduler", "--scheduler-file",
+             self.scheduler_file, "--interface", str(self.network_interface)], stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
         time.sleep(self.wait)
 
     def start_workers(self):
