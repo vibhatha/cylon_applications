@@ -3,6 +3,7 @@ import os
 import dask
 import dask.dataframe as dd
 from dask.distributed import Client, SSHCluster
+from dask_cluster import DaskCluster
 import pandas as pd
 import time
 import argparse
@@ -195,12 +196,19 @@ if __name__ == '__main__':
     ips = get_ips(args.nodes_file)
     python_env = args.python_env
     scheduler_host = args.scheduler_host
+    local_directory = "/scratch/vlabeyko/dask"
+    scheduler_file = "/N/u2/v/vlabeyko/dask-sched.json"
+    wait = 15
     print("NODES : ", ips)
     print("Processes Per Node: ", procs)
-
+    dask_cluster = DaskCluster(scheduler_host=scheduler_host, ips=ips, memory_limit=args.memory_limit_per_worker,
+                               network_interface=args.network_interface, nprocs=procs, nthreads=1,
+                               local_directory=local_directory,
+                               scheduler_file=scheduler_file, python_env=python_env, num_nodes=nodes, wait=wait)
     # stop_cluster(ips)
     # start_cluster(ips=ips, scheduler_host=scheduler_host, python_env=python_env, procs=procs, nodes=nodes,
     #              memory_limit_per_worker=args.memory_limit_per_worker, network_interface=args.network_interface)
+    dask_cluster.start_cluster()
     bench_drop_duplicates_op(start=args.start_size,
                              end=args.end_size,
                              step=args.step_size,
@@ -211,3 +219,4 @@ if __name__ == '__main__':
                              num_nodes=args.total_nodes,
                              parallelism=parallelism)
     # stop_cluster(ips)
+    dask_cluster.stop_cluster()
