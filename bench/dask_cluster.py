@@ -39,7 +39,7 @@ class DaskCluster(object):
     def start_workers(self):
         for ip in self.ips[0:self.num_nodes]:
             print("Starting Worker : {}".format(ip))
-            subprocess.Popen(
+            val = subprocess.Popen(
                 ["ssh", ip, self.python_env + "/bin/dask-worker", self.scheduler_host + ":8786", "--nthreads",
                  str(self.nthreads), "--nprocs",
                  str(self.nprocs), "--memory-limit", self.memory_limit, "--interface", self.network_interface,
@@ -48,6 +48,7 @@ class DaskCluster(object):
                  self.scheduler_file],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)
+            print("Out : {}".format(val.__str__()))
         time.sleep(self.wait)
 
     def stop_scheduler(self):
