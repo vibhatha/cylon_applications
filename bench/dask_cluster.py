@@ -32,7 +32,7 @@ class DaskCluster(object):
         print("Starting Scheduler")
         subprocess.Popen(
             ["ssh", self.scheduler_host, self.python_env + "/bin/dask-scheduler", "--scheduler-file", "--interface",
-             self.network_interface,
+             str(self.network_interface),
              self.scheduler_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         time.sleep(self.wait)
 
@@ -42,13 +42,12 @@ class DaskCluster(object):
             val = subprocess.Popen(
                 ["ssh", ip, self.python_env + "/bin/dask-worker", self.scheduler_host + ":8786", "--nthreads",
                  str(self.nthreads), "--nprocs",
-                 str(self.nprocs), "--memory-limit", self.memory_limit, "--interface", self.network_interface,
+                 str(self.nprocs), "--memory-limit", self.memory_limit, "--interface", str(self.network_interface),
                  "--local-directory", self.local_directory,
                  "--scheduler-file",
                  self.scheduler_file],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT)
-            print("Out : {}".format(val.__str__()))
         time.sleep(self.wait)
 
     def stop_scheduler(self):
