@@ -101,7 +101,7 @@ def dask_drop_duplicates(scheduler_host, num_rows, base_file_path, num_nodes, pa
     print("rows", len(df_l), flush=True)
     join_time = time.time()
     out = df_l.drop_duplicates(split_out=parallelism)
-    out.visualize("unique_graph_v1.svg")
+    out.visualize("unique_graph_v1.png")
     res = out.compute()
     join_time = time.time() - join_time
     return join_time
