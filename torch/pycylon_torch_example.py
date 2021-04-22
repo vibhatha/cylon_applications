@@ -47,12 +47,9 @@ class Network(nn.Module):
 
     def __init__(self):
         super().__init__()
-
-        # Inputs to hidden layer linear transformation
         self.linear = nn.Linear(3, 1)
 
     def forward(self, x):
-        # Pass the input tensor through each of our operations
         y_pred = F.leaky_relu(self.linear(x))
         return y_pred
 
