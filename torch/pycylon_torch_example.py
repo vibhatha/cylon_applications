@@ -1,6 +1,6 @@
 """
 Install: PyCylon (Follow: https://cylondata.org/docs/)
-Run Program: mpirun -n 4 python cylon_pytorch_demo_distributed.py
+Run Program: mpirun -n 4 python3 pycylon_torch_example.py --backend nccl --epochs 20
 """
 import argparse
 import os
