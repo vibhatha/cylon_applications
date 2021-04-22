@@ -141,16 +141,6 @@ def demo_basic(rank, world_size, backend, epochs, master_address, port):
             optimizer.zero_grad()
 
     if rank == 0:
-        print("Testing A Dummy Model")
-    prediction_model = ddp_model.train(False)
-    for x_batch, y_batch in zip(x_test, y_test):
-        prediction = prediction_model(x_batch)
-        inv_prediction = sct.inverse_transform(prediction.detach().numpy().reshape(-1, 1))
-        inv_ybatch = sct.inverse_transform(y_batch.detach().numpy().reshape(-1, 1))
-        inv_prediction = inv_prediction.reshape(1)[0]
-        inv_ybatch = inv_ybatch.reshape(1)[0]
-
-    if rank == 0:
         print("Data Analysis Complete!!!")
 
 
