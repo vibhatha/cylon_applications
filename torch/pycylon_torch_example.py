@@ -7,6 +7,7 @@ import os
 import socket
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -14,6 +15,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from pycylon import CylonEnv
 from pycylon import read_csv
+from pycylon import DataFrame
 from pycylon.net import MPIConfig
 from pycylon.util.logging import log_level, disable_logging
 from sklearn.preprocessing import StandardScaler
@@ -59,13 +61,14 @@ def demo_basic(rank, world_size, backend, epochs, master_address, port):
     env = setup(rank=rank, world_size=world_size, backend=backend, master_address=master_address, port=port)
     cuda_available = torch.cuda.is_available()
     device = 'cuda:' + str(rank) if cuda_available else 'cpu'
-    base_path = "/tmp"
+    base_path = "https://raw.githubusercontent.com/cylondata/cylon/main/cpp/src/tutorial/data/"
 
     user_devices_file = os.path.join(base_path, f'user_device_tm_{rank + 1}.csv')
     user_usage_file = os.path.join(base_path, f'user_usage_tm_{rank + 1}.csv')
-
-    user_devices_data = read_csv(user_devices_file, sep=',')
-    user_usage_data = read_csv(user_usage_file, sep=',')
+    print("Rank[{}] User Device File : {}".format(rank, user_devices_file))
+    print("Rank[{}] User Usage File : {}".format(rank, user_usage_file))
+    user_devices_data = DataFrame(pd.read_csv(user_devices_file)) #read_csv(user_devices_file, sep=',')
+    user_usage_data = DataFrame(pd.read_csv(user_usage_file)) #read_csv(user_usage_file, sep=',')
 
     print(f"Rank [{rank}] User Devices Data Rows:{len(user_devices_data)}, Columns: {len(user_devices_data.columns)}")
     print(f"Rank [{rank}] User Usage Data Rows:{len(user_usage_data)}, Columns: {len(user_usage_data.columns)}")
@@ -77,7 +80,7 @@ def demo_basic(rank, world_size, backend, epochs, master_address, port):
     print("-------------------------------------")
     print(user_usage_data[0:5])
 
-    join_df = user_devices_data.merge(right=user_usage_data, left_on=[0], right_on=[3], algorithm='sort')
+    join_df = user_devices_data.merge(right=user_usage_data, left_on=[0], right_on=[3], algorithm='hash')
     print("----------------------")
     print("Rank [{}] New Table After Join (5 Records)".format(rank))
     print(join_df[0:5])
