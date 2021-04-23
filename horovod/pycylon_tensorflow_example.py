@@ -1,6 +1,9 @@
 """
 Install: PyCylon (Follow: https://cylondata.org/docs/)
-Run Program: mpirun -n 4 python3 pycylon_torch_example.py --backend nccl --epochs 20
+Run Program:  horovodrun -np 4 python3 pycylon_tensorflow_example.py --epochs 20
+References:
+    1. https://github.com/horovod/horovod/blob/master/examples/tensorflow2/tensorflow2_mnist.py
+    2. https://horovod.readthedocs.io/en/stable/tensorflow.html
 """
 import argparse
 import os
@@ -22,30 +25,24 @@ disable_logging()  # disable logging completely
 hostname = socket.gethostname()
 
 
-def setup(backend):
+def setup():
     hvd.init()
     assert hvd.mpi_threads_supported()
     mpi_config = MPIConfig()
     env = CylonEnv(config=mpi_config, distributed=True)
     rank = env.rank
     world_size = env.world_size
-    print(f"Init Process Groups : => [{hostname}]Demo DDP Rank {rank}")
+    print(f"Init Process Groups : => [{hostname}]Demo DDP Rank: {rank} , World Size: {world_size}")
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    if gpus:
+        tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
     return env
 
 
-class Network():
-
-    def __init__(self):
-        super().__init__()
-        self.linear = None
-
-    def forward(self, x):
-        y_pred = None
-        return y_pred
-
-
-def demo_basic(backend, epochs):
-    env = setup(backend=backend)
+def demo_basic(epochs):
+    env = setup()
     rank = env.rank
     print(f"Simple Batch Train => [{hostname}]Demo DDP Rank {rank}")
 
@@ -105,18 +102,53 @@ def demo_basic(backend, epochs):
     x_test = sc.fit_transform(x_test)
     y_test = sct.fit_transform(y_test)
 
-    # x_train = torch.from_numpy(x_train).to(device)
-    # y_train = torch.from_numpy(y_train).to(device)
-    # x_test = torch.from_numpy(x_test).to(device)
-    # y_test = torch.from_numpy(y_test).to(device)
+    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
-    # create model and move it to GPU with id rank
+    print("=" * 80)
+    print("Tensorflow DataSets")
+    print("=" * 80)
+
+    BATCH_SIZE = 64
+    SHUFFLE_BUFFER_SIZE = 100
+
+    train_dataset = train_dataset.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
+    test_dataset = test_dataset.batch(BATCH_SIZE)
+
+    # define network
+    model = tf.keras.Sequential([
+        tf.keras.layers.Dense(3), tf.keras.layers.Dense(1)])
+    # define loss function
+    loss = tf.losses.MeanSquaredError()
+    # define optimizer
+    opt = tf.optimizers.Adam(0.001 * hvd.size())
+
+    @tf.function
+    def training_step(images, labels, first_batch):
+        # define a step function for training
+        with tf.GradientTape() as tape:
+            probs = model(images, training=True)
+            loss_value = loss(labels, probs)
+
+        tape = hvd.DistributedGradientTape(tape)
+
+        grads = tape.gradient(loss_value, model.trainable_variables)
+        opt.apply_gradients(zip(grads, model.trainable_variables))
+
+        if first_batch:
+            hvd.broadcast_variables(model.variables, root_rank=0)
+            hvd.broadcast_variables(opt.variables(), root_rank=0)
+
+        return loss_value
 
     if rank == 0:
         print("Training A Dummy Model")
+    take_count = x_train.shape[0] // hvd.size()
     for t in range(epochs):
-        for x_batch, y_batch in zip(x_train, y_train):
-            print(f"Epoch {t}", end='\r')
+        for batch, (images, labels) in enumerate(train_dataset.take(take_count)):
+            loss_value = training_step(images, labels, batch == 0)
+            if batch % 10 == 0 and hvd.local_rank() == 0:
+                print("Epoch : {}, Batch : {}, Loss : {}".format(t, batch, loss_value))
 
     if rank == 0:
         print("Data Analysis Complete!!!")
@@ -124,22 +156,9 @@ def demo_basic(backend, epochs):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--backend",
-                        help="example : 'mpi', 'nccl'",
-                        default='mpi',
-                        type=str)
     parser.add_argument("-e", "--epochs",
                         help="training epochs",
                         default=10,
                         type=int)
-    parser.add_argument("-m", "--master_address",
-                        help="master address for torch distributed runtime",
-                        default='localhost',
-                        type=str)
-    parser.add_argument("-p", "--port",
-                        help="torch port for distributed runtime",
-                        default='12335',
-                        type=str)
     args = parser.parse_args()
-    backend = args.backend
-    demo_basic(backend=backend, epochs=args.epochs)
+    demo_basic(epochs=args.epochs)
