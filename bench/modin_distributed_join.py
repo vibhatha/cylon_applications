@@ -6,6 +6,7 @@ import argparse
 import math
 import subprocess
 import numpy as np
+import json
 
 """
 >>> python modin_distributed_join.py --start_size 1_000_000 \
@@ -144,8 +145,13 @@ if __name__ == '__main__':
     #print("NODES : ", ips)
     print("Processes Per Node: ", procs)
 
-
-    ray.init(plasma_directory="/scratch/vlabeyko/modin", object_store_memory=10 ** 10)
+    ray.init(
+        _system_config={
+            "object_spilling_config": json.dumps(
+                {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
+            )
+        },
+    )
 
     bench_join_op(start=args.start_size,
                   end=args.end_size,
