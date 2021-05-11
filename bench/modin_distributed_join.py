@@ -1,5 +1,5 @@
 import os
-
+import ray
 import modin.pandas as pd
 import time
 import argparse
@@ -143,6 +143,9 @@ if __name__ == '__main__':
     scheduler_host = args.scheduler_host
     #print("NODES : ", ips)
     print("Processes Per Node: ", procs)
+
+
+    ray.init(plasma_directory="/scratch/vlabeyko/modin", object_store_memory=10 ** 10)
 
     bench_join_op(start=args.start_size,
                   end=args.end_size,
