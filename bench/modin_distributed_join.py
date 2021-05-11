@@ -1,10 +1,6 @@
 import os
 
-import dask
-import dask.dataframe as dd
-from dask.distributed import Client, SSHCluster
-from dask_cluster import DaskCluster
-import pandas as pd
+import modin.pandas as pd
 import time
 import argparse
 import math
@@ -12,17 +8,18 @@ import subprocess
 import numpy as np
 
 """
->>> python dask_distributed_unique.py --start_size 100_000_000 \
-                                        --step_size 100_000_000 \
-                                        --end_size 500_000_000 \
+>>> python modin_distributed_join.py --start_size 1_000_000 \
+                                        --step_size 1_000_000 \
+                                        --end_size 2_000_000 \
                                         --num_cols 2 \
                                         --stats_file /tmp/dask_dist_join_bench.csv \
-                                        --repetitions 3 \
+                                        --repetitions 1 \
                                         --base_file_path ~/data/cylon_bench \
-                                        --parallelism 64 \
+                                        --parallelism 4 \
                                         --nodes_file /hostfiles/hostfile_victor_8x16 \
-                                        --total_nodes 8 \
+                                        --total_nodes 1 \
                                         --scheduler_host v-001 \
+                                        --memory_limit_per_worker 4G \
                                         --python_env /home/vibhatha/venv/ENVCYLON
 """
 
@@ -35,28 +32,27 @@ def get_ips(nodes_file):
     return ips
 
 
-def dask_drop_duplicates(scheduler_host, num_rows, base_file_path, num_nodes, parallelism):
-    print("Drop Duplicates Function")
-    client = Client(scheduler_host + ':8786')
-    print(client)
+def modin_join(num_rows, base_file_path, parallelism):
+    print("Join Function")
     sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
-    distributed_file_prefix = "distributed_data_file_rank_*.csv"
-    file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
-    # if not os.path.exists(file_path):
-    #     print("File Path invalid: {}".format(file_path))
-    #     return 0
-    df_l = dd.read_csv(file_path).repartition(npartitions=parallelism)
-    client.persist([df_l])
-    print("rows", len(df_l), flush=True)
+    distributed_file_prefix = "single_data_file.csv"
+    left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
+    right_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
+    print("Reading files...")
+    df_l = pd.read_csv(left_file_path)
+    df_r = pd.read_csv(right_file_path)
+
+    join_column = df_l.columns[0]
+
+    print("left rows", len(df_l), flush=True)
+    print("right rows", len(df_r), flush=True)
     join_time = time.time()
-    out = df_l.drop_duplicates(split_out=parallelism)
-    res = out.compute()
+    out = df_l.merge(df_r, on=join_column, how='inner', suffixes=('_left', '_right'))
     join_time = time.time() - join_time
     return join_time
 
 
-def bench_drop_duplicates_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, num_nodes,
-                             parallelism):
+def bench_join_op(start, end, step, num_cols, repetitions, stats_file, base_file_path, parallelism):
     all_data = []
     schema = ["num_records", "num_cols", "time(s)"]
     assert repetitions >= 1
@@ -66,12 +62,10 @@ def bench_drop_duplicates_op(start, end, step, num_cols, repetitions, stats_file
     for records in range(start, end + step, step):
         times = []
         for idx in range(repetitions):
-            dask_time = dask_drop_duplicates(scheduler_host=scheduler_host, num_rows=records,
-                                             base_file_path=base_file_path,
-                                             num_nodes=num_nodes, parallelism=parallelism)
+            dask_time = modin_join(num_rows=records, base_file_path=base_file_path, parallelism=parallelism)
             times.append([dask_time])
         times = np.array(times).sum(axis=0) / repetitions
-        print("Join Op : Records={}, Columns={}, Dask Time : {}".format(records, num_cols, times[0]))
+        print("Join Op : Records={}, Columns={}, Modin Time : {}".format(records, num_cols, times[0]))
         all_data.append([records, num_cols, times[0]])
     pdf = pd.DataFrame(all_data, columns=schema)
     print(pdf)
@@ -107,14 +101,14 @@ if __name__ == '__main__':
     parser.add_argument("-n", "--total_nodes",
                         help="total nodes",
                         type=int)
-    parser.add_argument("-nf", "--nodes_file",
-                        help="nodes file",
-                        type=str)
     parser.add_argument("-ml", "--memory_limit_per_worker",
                         help="memory limit per worker",
                         type=str)
     parser.add_argument("-ni", "--network_interface",
                         help="network interface",
+                        type=str)
+    parser.add_argument("-nf", "--nodes_file",
+                        help="nodes file",
                         type=str)
     parser.add_argument("-sh", "--scheduler_host",
                         help="scheduler host",
@@ -140,34 +134,21 @@ if __name__ == '__main__':
     print("Python ENV : {}".format(args.python_env))
 
     parallelism = args.parallelism
+    os.environ["MODIN_CPUS"] = str(parallelism)
     TOTAL_NODES = args.total_nodes
     procs = int(math.ceil(parallelism / TOTAL_NODES))
     nodes = min(parallelism, TOTAL_NODES)
-    ips = get_ips(args.nodes_file)
+    #ips = get_ips(args.nodes_file)
     python_env = args.python_env
     scheduler_host = args.scheduler_host
-    local_directory = "/scratch/vlabeyko/dask"
-    scheduler_file = "/N/u2/v/vlabeyko/dask-sched.json"
-    wait = 15
-    print("NODES : ", ips)
+    #print("NODES : ", ips)
     print("Processes Per Node: ", procs)
-    dask_cluster = DaskCluster(scheduler_host=scheduler_host, ips=ips, memory_limit=args.memory_limit_per_worker,
-                               network_interface=args.network_interface, nprocs=procs, nthreads=1,
-                               local_directory=local_directory,
-                               scheduler_file=scheduler_file, python_env=python_env, num_nodes=nodes, wait=wait)
-    dask_cluster.start_cluster()
-    try:
-        bench_drop_duplicates_op(start=args.start_size,
-                                 end=args.end_size,
-                                 step=args.step_size,
-                                 num_cols=args.num_cols,
-                                 repetitions=args.repetitions,
-                                 stats_file=args.stats_file,
-                                 base_file_path=args.base_file_path,
-                                 num_nodes=args.total_nodes,
-                                 parallelism=parallelism)
-    except Exception as e:
-        print("Exception Occurred : {}".format(str(e)))
-        dask_cluster.stop_cluster()
-    finally:
-        dask_cluster.stop_cluster()
+
+    bench_join_op(start=args.start_size,
+                  end=args.end_size,
+                  step=args.step_size,
+                  num_cols=args.num_cols,
+                  repetitions=args.repetitions,
+                  stats_file=args.stats_file,
+                  base_file_path=args.base_file_path,
+                  parallelism=parallelism)

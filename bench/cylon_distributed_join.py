@@ -26,9 +26,9 @@ from pycylon.net import MPIConfig
 """
 Run benchmark:
 
->>> mpirun -n 64 python cylon_distributed_join.py --start_size 100_000_000 \
-                                        --step_size 100_000_000 \
-                                        --end_size 500_000_000 \
+>>> mpirun -n 4 python cylon_distributed_join.py --start_size 1_000_000 \
+                                        --step_size 1_000_000 \
+                                        --end_size 2_000_000 \
                                         --num_cols 2 \
                                         --stats_file /tmp/dist_sort_join_bench.csv \
                                         --repetitions 1 \
