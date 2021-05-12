@@ -139,19 +139,19 @@ if __name__ == '__main__':
     TOTAL_NODES = args.total_nodes
     procs = int(math.ceil(parallelism / TOTAL_NODES))
     nodes = min(parallelism, TOTAL_NODES)
-    #ips = get_ips(args.nodes_file)
+    # ips = get_ips(args.nodes_file)
     python_env = args.python_env
     scheduler_host = args.scheduler_host
-    #print("NODES : ", ips)
+    # print("NODES : ", ips)
     print("Processes Per Node: ", procs)
 
-    ray.init(
-        _system_config={
-            "object_spilling_config": json.dumps(
-                {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
-            )
-        },
-    )
+    ray.init(address='auto', _redis_password='5241590000000000',
+             _system_config={
+                 "object_spilling_config": json.dumps(
+                     {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
+                 )
+             },
+             )
 
     bench_join_op(start=args.start_size,
                   end=args.end_size,
