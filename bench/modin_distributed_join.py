@@ -123,6 +123,9 @@ if __name__ == '__main__':
     parser.add_argument("-pe", "--python_env",
                         help="python env",
                         type=str)
+    parser.add_argument("-cl", "--cluster",
+                        help="cluster mode",
+                        type=str)
 
     args = parser.parse_args()
     print("Start Data Size : {}".format(args.start_size))
@@ -139,6 +142,7 @@ if __name__ == '__main__':
     print("Nodes File : {}".format(args.nodes_file))
     print("Scheduler Host : {}".format(args.scheduler_host))
     print("Python ENV : {}".format(args.python_env))
+    print("Cluster : {}".format(args.cluster))
 
     parallelism = args.parallelism
     os.environ["MODIN_CPUS"] = str(parallelism)
@@ -150,15 +154,17 @@ if __name__ == '__main__':
     scheduler_host = args.scheduler_host
     # print("NODES : ", ips)
     print("Processes Per Node: ", procs)
-
-    ray.init(
-        _system_config={
-            "object_spilling_config": json.dumps(
-                {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
-            )
-        },
-    )
-    # ray.init(address='auto', _redis_password='5241590000000000')
+    if args.cluster == 'ray':
+        # ray.init()
+        ray.init(address='auto', _redis_password='5241590000000000')
+    else:
+        ray.init(
+            _system_config={
+                "object_spilling_config": json.dumps(
+                    {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
+                )
+            },
+        )
 
     bench_join_op(start=args.start_size,
                   end=args.end_size,
