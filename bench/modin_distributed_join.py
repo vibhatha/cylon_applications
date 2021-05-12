@@ -151,14 +151,14 @@ if __name__ == '__main__':
     # print("NODES : ", ips)
     print("Processes Per Node: ", procs)
 
-    # ray.init(
-    #     _system_config={
-    #         "object_spilling_config": json.dumps(
-    #             {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
-    #         )
-    #     },
-    # )
-    ray.init(address='auto', _redis_password='5241590000000000')
+    ray.init(
+        _system_config={
+            "object_spilling_config": json.dumps(
+                {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
+            )
+        },
+    )
+    # ray.init(address='auto', _redis_password='5241590000000000')
 
     bench_join_op(start=args.start_size,
                   end=args.end_size,
