@@ -157,6 +157,9 @@ if __name__ == '__main__':
     if args.cluster == 'ray':
         # ray.init()
         ray.init(address='auto', _redis_password='5241590000000000')
+    elif args.cluster == 'dask':
+        from distributed import Client
+        client = Client(args.scheduler_host + ':8786')
     else:
         ray.init(
             _system_config={
