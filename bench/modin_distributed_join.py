@@ -9,6 +9,12 @@ import numpy as np
 import json
 
 """
+Ray Head: ray start --head --port 12345
+
+Ray Worker: ray start --address='v-015:12345' --redis-password='5241590000000000' --num-cpus 32
+"""
+
+"""
 >>> python modin_distributed_join.py --start_size 1_000_000 \
                                         --step_size 1_000_000 \
                                         --end_size 2_000_000 \
@@ -145,13 +151,14 @@ if __name__ == '__main__':
     # print("NODES : ", ips)
     print("Processes Per Node: ", procs)
 
-    ray.init(address='auto', _redis_password='5241590000000000',
-             _system_config={
-                 "object_spilling_config": json.dumps(
-                     {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
-                 )
-             },
-             )
+    # ray.init(
+    #     _system_config={
+    #         "object_spilling_config": json.dumps(
+    #             {"type": "filesystem", "params": {"directory_path": "/scratch/vlabeyko/modin"}},
+    #         )
+    #     },
+    # )
+    ray.init(address='auto', _redis_password='5241590000000000')
 
     bench_join_op(start=args.start_size,
                   end=args.end_size,
