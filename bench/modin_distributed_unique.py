@@ -33,7 +33,7 @@ def get_ips(nodes_file):
 
 
 def modin_unique(num_rows, base_file_path, parallelism):
-    print("Join Function")
+    print("Unique Function")
     sub_path = "records_{}/parallelism_{}".format(num_rows, parallelism)
     distributed_file_prefix = "single_data_file.csv"
     left_file_path = os.path.join(base_file_path, sub_path, distributed_file_prefix)
