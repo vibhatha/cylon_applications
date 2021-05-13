@@ -1,5 +1,6 @@
 import os
-
+os.environ["MODIN_CPUS"] = "1"
+os.environ['MODIN_ENGINE'] = 'ray'
 import modin.pandas as pd
 import time
 import argparse
