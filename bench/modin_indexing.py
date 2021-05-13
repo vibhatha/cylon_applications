@@ -10,7 +10,7 @@ from bench_util import get_dataframe
 """
 Run benchmark:
 
->>> python python/examples/op_benchmark/indexing_benchmark.py --start_size 1_000_000 \
+>>> python modin_indexing.py --start_size 1_000_000 \
                                         --step_size 1_000_000 \
                                         --end_size 10_000_000 \
                                         --num_cols 2 \

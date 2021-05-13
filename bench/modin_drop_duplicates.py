@@ -13,7 +13,9 @@
 ##
 
 import os
-os.environ["MODIN_CPUS"] = "1"
+cpus = os.environ.get('MODIN_CPUS')
+print("CPUS : {}".format(cpus))
+os.environ["MODIN_CPUS"] = cpus
 os.environ['MODIN_ENGINE'] = 'ray'
 import time
 import modin.pandas as pd
