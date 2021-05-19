@@ -15,7 +15,7 @@
 import os
 cpus = os.environ.get('MODIN_CPUS')
 print("CPUS : {}".format(cpus))
-os.environ["MODIN_CPUS"] = cpus
+os.environ["MODIN_CPUS"] = str(cpus)
 os.environ['MODIN_ENGINE'] = 'ray'
 import time
 import modin.pandas as pd
@@ -32,7 +32,7 @@ Run benchmark:
                                         --end_size 30_000_000 \
                                         --num_cols 2 \
                                         --filter_size 500_000 \
-                                        --stats_file /tmp/duplicate_bench.csv \
+                                        --stats_file /tmp/modin_duplicate_bench.csv \
                                         --repetitions 5 \
                                         --unique_factor 0.1
 """

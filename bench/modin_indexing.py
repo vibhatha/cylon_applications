@@ -14,7 +14,7 @@ Run benchmark:
                                         --step_size 1_000_000 \
                                         --end_size 10_000_000 \
                                         --num_cols 2 \
-                                        --stats_file /tmp/indexing_bench.csv \
+                                        --stats_file /tmp/modin_indexing_bench.csv \
                                         --unique_factor 0.1 \
                                         --repetitions 1
 """
@@ -27,6 +27,7 @@ def indexing_op(num_rows: int, num_cols: int, unique_factor: float):
     random_index = np.random.randint(low=0, high=pdf.shape[0])
     filter_value = filter_column_data.values[random_index]
     filter_values = filter_column_data.values.tolist()[0:pdf.shape[0] // 2]
+    filter_values = np.unique(np.array(filter_values)).tolist()
     pdf_indexing_time = time.time()
     pdf.set_index(filter_column, drop=True, inplace=True)
     pdf_indexing_time = time.time() - pdf_indexing_time

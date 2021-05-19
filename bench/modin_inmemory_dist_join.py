@@ -15,7 +15,7 @@
 
 import time
 import os
-os.environ["MODIN_CPUS"] = "1"
+os.environ["MODIN_CPUS"] = "4"
 os.environ['MODIN_ENGINE'] = 'ray'
 import modin.pandas as pd
 import numpy as np
@@ -26,11 +26,11 @@ import argparse
 """
 Run benchmark:
 
->>> python modin_join.py --start_size 10_000_000 \
-                                        --step_size 10_000_000 \
-                                        --end_size 50_000_000 \
+>>> python modin_inmemory_dist_join.py --start_size 1_000_000 \
+                                        --step_size 1_000_000 \
+                                        --end_size 10_000_000 \
                                         --num_cols 2 \
-                                        --stats_file /tmp/modin_join_bench.csv \
+                                        --stats_file /tmp/modin_dist_join_bench.csv \
                                         --repetitions 1 \
                                         --unique_factor 0.1 \
                                         --algorithm hash 
@@ -38,8 +38,10 @@ Run benchmark:
 
 
 def join_op(num_rows: int, num_cols: int, algorithm: str, unique_factor: float):
-    pdf_left = get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor, stringify=False)
-    pdf_right = get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor, stringify=False)
+    pdf_left = pd.DataFrame(
+        get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor, stringify=False))
+    pdf_right = pd.DataFrame(
+        get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor, stringify=False))
     # NOTE: sort join breaks when loaded data in-memory via Pandas dataframe
 
     join_col = pdf_left.columns[0]
