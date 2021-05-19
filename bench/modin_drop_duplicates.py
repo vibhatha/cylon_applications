@@ -27,8 +27,8 @@ import argparse
 """
 Run benchmark:
 
->>> python modin_drop_duplicates.py --start_size 10_000_000 \
-                                        --step_size 10_000_000 \
+>>> MODIN_CPUS=1 python modin_drop_duplicates.py --start_size 30_000_000 \
+                                        --step_size 30_000_000 \
                                         --end_size 30_000_000 \
                                         --num_cols 2 \
                                         --filter_size 500_000 \
