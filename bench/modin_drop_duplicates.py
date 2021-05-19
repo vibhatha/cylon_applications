@@ -41,6 +41,7 @@ Run benchmark:
 def duplicate_op(num_rows: int, num_cols: int, filter_size: int, unique_factor: float):
 
     pdf = get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor)
+    pdf = pd.DataFrame(pdf)
     filter_columns = pdf.columns[0:filter_size]
 
     modin_time = time.time()

@@ -22,6 +22,7 @@ Run benchmark:
 
 def indexing_op(num_rows: int, num_cols: int, unique_factor: float):
     pdf = get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor)
+    pdf = pd.DataFrame(pdf)
     filter_column = pdf.columns[0]
     filter_column_data = pdf[pdf.columns[0]]
     random_index = np.random.randint(low=0, high=pdf.shape[0])
