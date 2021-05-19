@@ -15,7 +15,8 @@
 
 import time
 import os
-os.environ["MODIN_CPUS"] = "1"
+cpus = os.environ.get("MODIN_CPUS")
+os.environ["MODIN_CPUS"] = str(cpus)
 os.environ['MODIN_ENGINE'] = 'ray'
 import modin.pandas as pd
 import numpy as np
@@ -41,7 +42,8 @@ def join_op(num_rows: int, num_cols: int, algorithm: str, unique_factor: float):
     pdf_left = get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor, stringify=False)
     pdf_right = get_dataframe(num_rows=num_rows, num_cols=num_cols, unique_factor=unique_factor, stringify=False)
     # NOTE: sort join breaks when loaded data in-memory via Pandas dataframe
-
+    pdf_left = pd.DataFrame(pdf_left)
+    pdf_right = pd.DataFrame(pdf_right)
     join_col = pdf_left.columns[0]
 
     modin_time = time.time()
